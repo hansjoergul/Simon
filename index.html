@@ -2,442 +2,559 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Unsere Einkaufsliste</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#e6f2ff">
+    <title>Simon</title>
     
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link rel="apple-touch-icon" href="icon.png">
+    <link rel="icon" type="image/png" href="icon.png">
+
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
 
     <style>
         :root {
-            --primary-color: #2E7D32; 
-            --bg-color: #f4f4f9;
-            --card-bg: #ffffff;
-            --text-color: #222;
-            --border-color: #ddd;
-            --danger-color: #d32f2f;
+            --primary: #4a90e2;       /* Kräftiges Blau */
+            --secondary: #82b1ff;     /* Sanftes Hellblau */
+            --bg-overlay: rgba(230, 244, 255, 0.4); /* Heller Schleier über dem Bild */
+            --card-bg: rgba(255, 255, 255, 0.75);   /* Milchglas Effekt */
+            --text-main: #334e68;     /* Dunkles Blau-Grau für Lesbarkeit */
+            --text-light: #829ab1;
+            --shadow: 0 10px 25px rgba(74, 144, 226, 0.25); /* Blaue Schatten */
         }
 
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+            font-family: 'Quicksand', sans-serif;
+            user-select: none;
+        }
 
         body {
-            font-family: sans-serif;
-            margin: 0; background-color: var(--bg-color);
-            color: var(--text-color);
-            padding-bottom: 120px; /* Mehr Platz unten für 2 Buttons */
+            background-color: #e6f2ff;
+            /* Hintergrundbild mit hellem Overlay */
+            background-image: linear-gradient(var(--bg-overlay), var(--bg-overlay)), url('bild.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            color: var(--text-main);
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
         }
 
-        header {
-            background-color: var(--primary-color);
-            color: white; padding: 15px; text-align: center;
-            position: sticky; top: 0; z-index: 1000;
+        /* --- HEARTS ANIMATION --- */
+        .hearts-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .heart {
+            position: absolute;
+            color: rgba(74, 144, 226, 0.4); /* Blaue Herzen/Sterne */
+            animation: floatUp linear infinite;
+            filter: drop-shadow(0 0 5px white);
+        }
+        @keyframes floatUp {
+            0% { transform: translateY(100vh) scale(0.5); opacity: 0; }
+            50% { opacity: 0.8; }
+            100% { transform: translateY(-10vh) scale(1.2); opacity: 0; }
         }
 
-        .tabs {
-            display: flex; background: white;
-            position: sticky; top: 54px; z-index: 900;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        /* --- SCREENS --- */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transition: opacity 0.5s ease;
+            display: flex;
+            flex-direction: column;
         }
 
-        .tab-btn {
-            flex: 1; padding: 15px; border: none; background: none;
-            font-weight: bold; color: #666; cursor: pointer;
+        .hidden {
+            opacity: 0;
+            pointer-events: none;
+            z-index: -10;
         }
 
-        .tab-btn.active { color: var(--primary-color); border-bottom: 3px solid var(--primary-color); }
-
-        .search-container { padding: 10px; background: white; }
-        #search-input {
-            width: 100%; padding: 12px; border: 1px solid #ccc;
-            border-radius: 25px; font-size: 1rem;
+        /* --- PIN SCREEN (Soft & Cute) --- */
+        #pin-screen {
+            z-index: 100;
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            background: rgba(255, 255, 255, 0.4);
+            align-items: center;
+            justify-content: center;
         }
 
-        .view-section { display: none; padding: 12px; }
-        .view-section.active { display: block; }
-
-        .cat-title { font-weight: bold; margin: 20px 0 10px; color: var(--primary-color); border-bottom: 1px solid #ddd; }
-
-        .product-grid {
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px;
+        .pin-wrapper {
+            width: 100%;
+            max-width: 320px;
+            text-align: center;
+            background: rgba(255,255,255,0.8);
+            padding: 40px 20px;
+            border-radius: 40px;
+            box-shadow: var(--shadow);
+            border: 2px solid white;
         }
 
-        .product-card {
-            background: white; padding: 10px; border-radius: 12px; text-align: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: relative;
+        .pin-title {
+            font-family: 'Pacifico', cursive;
+            font-size: 2rem;
+            color: var(--primary);
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 0px white;
         }
-        .product-card.in-cart { border: 2px solid var(--primary-color); background: #f1f8e9; }
 
-        .prod-icon { font-size: 2rem; display: block; }
-        .prod-name { font-size: 0.8rem; font-weight: bold; display: block; margin: 5px 0; min-height: 30px; display: flex; align-items: center; justify-content: center;}
-
-        .controls { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
-        .btn-ctrl { width: 28px; height: 28px; border-radius: 50%; border: 1px solid #ccc; background: white; font-weight: bold; }
-        .btn-plus { background: var(--primary-color); color: white; border: none; }
-
-        .shopping-list-item {
-            background: white; margin-bottom: 8px; padding: 12px; border-radius: 10px;
-            display: flex; align-items: center; justify-content: space-between;
+        .pin-dots {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
         }
-        .shopping-list-item.checked { opacity: 0.5; text-decoration: line-through; }
 
-        .bottom-bar {
-            position: fixed; bottom: 0; width: 100%; padding: 15px; background: white;
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.1); display: none;
-            display: flex; gap: 10px; /* Abstand zwischen Buttons */
+        .pin-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #d9e8ff;
+            border: 2px solid var(--primary);
+            transition: 0.2s;
         }
-        /* Standardmäßig verstecken, wird per JS eingeblendet */
-        #shop-footer { display: none; }
-        #shop-footer.visible { display: flex; }
+        .pin-dot.filled { background: var(--primary); box-shadow: 0 0 10px var(--primary); }
 
-        .btn-action { flex: 1; padding: 15px; border: none; border-radius: 10px; font-weight: bold; color: white; cursor: pointer; }
-        .btn-pdf { background: var(--primary-color); }
-        .btn-reset { background: var(--danger-color); }
+        .numpad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            justify-items: center;
+        }
+
+        .key {
+            width: 65px;
+            height: 65px;
+            border-radius: 50%;
+            background: white;
+            font-size: 1.5rem;
+            color: var(--primary);
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .key:active { transform: scale(0.9); background: #f0f6ff; }
+
+        /* --- MAIN APP --- */
+        #app-screen {
+            z-index: 10;
+            overflow-y: auto;
+            padding: 20px;
+            padding-top: 50px; 
+        }
+
+        .profile-header {
+            text-align: center;
+            margin-bottom: 25px;
+            position: relative;
+        }
+        
+        .avatar-container {
+            display: inline-block;
+            padding: 5px;
+            background: white;
+            border-radius: 50%;
+            box-shadow: var(--shadow);
+            margin-bottom: 10px;
+        }
+
+        .avatar {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .greeting h1 {
+            font-family: 'Pacifico', cursive;
+            font-size: 2.8rem;
+            color: var(--primary);
+            text-shadow: 2px 2px 0px white;
+            margin-bottom: -5px;
+        }
+        .greeting p {
+            font-size: 0.9rem;
+            color: var(--text-light);
+            background: rgba(255,255,255,0.6);
+            padding: 5px 15px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+
+        /* Widgets Styles */
+        .widget {
+            background: var(--card-bg);
+            border: 2px solid white;
+            border-radius: 25px;
+            padding: 20px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: var(--shadow);
+        }
+
+        .w-title {
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            color: var(--secondary);
+            font-weight: bold;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+            display: block;
+            text-align: center;
+        }
+
+        /* Age Cubes */
+        .age-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+        .age-box {
+            background: white;
+            border-radius: 15px;
+            padding: 10px 5px;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+        .age-val {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--primary);
+            display: block;
+        }
+        .age-lbl { font-size: 0.7rem; color: var(--text-light); }
+
+        /* Stats Rows */
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px dashed rgba(0,0,0,0.1);
+            font-size: 1rem;
+        }
+        .stat-row:last-child { border: none; }
+        .highlight { font-weight: 700; color: var(--primary); }
+
+        /* Progress Bars */
+        .event-box { margin-bottom: 20px; }
+        .event-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+        .progress-track {
+            height: 14px;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.5);
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .progress-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 1.5s ease;
+            background-size: 20px 20px;
+            background-image: linear-gradient(45deg, rgba(255,255,255,.15) 25%, transparent 25%, transparent 50%, rgba(255,255,255,.15) 50%, rgba(255,255,255,.15) 75%, transparent 75%, transparent);
+            animation: stripes 1s linear infinite;
+        }
+        
+        .fill-bday { background-color: #6eb6ff; }
+        .fill-name { background-color: #92c4ff; }
+
+        @keyframes stripes {
+            from { background-position: 40px 0; }
+            to { background-position: 0 0; }
+        }
+
     </style>
 </head>
 <body>
 
-    <header><h1>🛒 Unsere Cloud-Liste</h1></header>
+    <div class="hearts-bg" id="bg-animation"></div>
 
-    <nav class="tabs">
-        <button class="tab-btn active" onclick="app.switchTab('all')">Produkte</button>
-        <button class="tab-btn" onclick="app.switchTab('cats')">Kategorien</button>
-        <button class="tab-btn" onclick="app.switchTab('shop')">Einkaufen</button>
-    </nav>
+    <div id="pin-screen" class="screen">
+        <div class="pin-wrapper">
+            <div class="pin-title">Simon 🐻</div>
+            
+            <div class="pin-dots">
+                <div class="pin-dot" id="d1"></div>
+                <div class="pin-dot" id="d2"></div>
+                <div class="pin-dot" id="d3"></div>
+                <div class="pin-dot" id="d4"></div>
+            </div>
 
-    <div id="search-wrapper" class="search-container">
-        <input type="text" id="search-input" placeholder="Suchen..." oninput="app.handleSearch()">
+            <div class="numpad">
+                <div class="key" onclick="tapPin(1)">1</div>
+                <div class="key" onclick="tapPin(2)">2</div>
+                <div class="key" onclick="tapPin(3)">3</div>
+                <div class="key" onclick="tapPin(4)">4</div>
+                <div class="key" onclick="tapPin(5)">5</div>
+                <div class="key" onclick="tapPin(6)">6</div>
+                <div class="key" onclick="tapPin(7)">7</div>
+                <div class="key" onclick="tapPin(8)">8</div>
+                <div class="key" onclick="tapPin(9)">9</div>
+                <div class="key" style="background:transparent; box-shadow:none;"></div>
+                <div class="key" onclick="tapPin(0)">0</div>
+                <div class="key" style="font-size:1.2rem; color: #90bbf0" onclick="delPin()">⌫</div>
+            </div>
+        </div>
     </div>
 
-    <section id="view-all" class="view-section active"><div id="grid-container" class="product-grid"></div></section>
-    <section id="view-cats" class="view-section"><div id="cat-list-container"></div></section>
-    <section id="view-shop" class="view-section"><div id="shopping-list-container"></div></section>
+    <div id="app-screen" class="screen hidden">
+        
+        <div class="profile-header">
+            <div class="avatar-container">
+                <img src="icon.png" class="avatar" alt="S">
+            </div>
+            <div class="greeting">
+                <h1>Simon</h1>
+                <p>Willkommen kleiner Schatz 💙</p>
+            </div>
+        </div>
 
-    <div id="shop-footer" class="bottom-bar">
-        <button class="btn-action btn-reset" onclick="app.clearCart()">🗑️ Alles Löschen</button>
-        <button class="btn-action btn-pdf" onclick="app.exportPDF()">📄 PDF</button>
+        <div class="widget">
+            <span class="w-title">✨ So groß bin ich schon ✨</span>
+            <div class="age-grid">
+                <div class="age-box"><span class="age-val" id="y">0</span><span class="age-lbl">Jahre</span></div>
+                <div class="age-box"><span class="age-val" id="m">0</span><span class="age-lbl">Monate</span></div>
+                <div class="age-box"><span class="age-val" id="w">0</span><span class="age-lbl">Wochen</span></div>
+                <div class="age-box"><span class="age-val" id="d">0</span><span class="age-lbl">Tage</span></div>
+            </div>
+        </div>
+
+        <div class="widget">
+            <span class="w-title">🌟 Meine Zeit auf Erden 🌟</span>
+            <div class="stat-row">
+                <span>Gesamt Monate</span>
+                <span class="highlight" id="total-m">0</span>
+            </div>
+            <div class="stat-row">
+                <span>Gesamt Wochen</span>
+                <span class="highlight" id="total-w">0</span>
+            </div>
+            <div class="stat-row">
+                <span>Gesamt Tage</span>
+                <span class="highlight" id="total-d">0</span>
+            </div>
+        </div>
+
+        <div class="widget">
+            <span class="w-title">🎉 Bald ist Party 🎉</span>
+            
+            <div class="event-box">
+                <div class="event-header">
+                    <span>🎂 Geburtstag (20.02.)</span>
+                    <span id="txt-bday" style="color:var(--primary)">...</span>
+                </div>
+                <div class="progress-track">
+                    <div class="progress-fill fill-bday" id="bar-bday" style="width:0%"></div>
+                </div>
+            </div>
+
+            <div class="event-box" style="margin-bottom:0;">
+                <div class="event-header">
+                    <span>⭐ Namenstag (28.10.)</span>
+                    <span id="txt-name" style="color:var(--secondary)">...</span>
+                </div>
+                <div class="progress-track">
+                    <div class="progress-fill fill-name" id="bar-name" style="width:0%"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="widget">
+            <span class="w-title">👶 Das Baby-Buch 👶</span>
+            <div class="stat-row">
+                <span>📍 Geburtsort</span>
+                <span class="highlight">Innsbruck</span>
+            </div>
+            <div class="stat-row">
+                <span>⏰ Uhrzeit</span>
+                <span class="highlight">19:38 Uhr</span>
+            </div>
+            <div class="stat-row">
+                <span>⚖️ Startgewicht</span>
+                <span class="highlight">2990g</span>
+            </div>
+            <div class="stat-row">
+                <span>📏 Größe</span>
+                <span class="highlight">51cm</span>
+            </div>
+        </div>
+        
+        <div style="height:60px"></div>
     </div>
 
-    <script type="module">
-        // Firebase Setup
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, set, onValue, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyBDchXMOrJO3Qy9yQISP87vOeE7vZU5yD4",
-            authDomain: "einkaufsliste-746a1.firebaseapp.com",
-            databaseURL: "https://einkaufsliste-746a1-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "einkaufsliste-746a1",
-            storageBucket: "einkaufsliste-746a1.firebasestorage.app",
-            messagingSenderId: "152718589857",
-            appId: "1:152718589857:web:896512392d7ae7c3e995e0"
+    <script>
+        // --- CONFIG ---
+        const CONFIG = {
+            pin: "2002",
+            dob: new Date("2026-02-20T19:38:00"), 
+            nameday: { d: 28, m: 10 } // 28. Oktober
         };
 
-        const fApp = initializeApp(firebaseConfig);
-        const db = getDatabase(fApp);
-        const dbRef = ref(db, 'shared-shopping-list');
-
-        const CATALOG = [
-            // OBST & GEMÜSE (W)
-            { name: "Erdbeeren", category: "Obst & Gemüse", side: "W", icon: "🍓" },
-            { name: "Heidelbeeren", category: "Obst & Gemüse", side: "W", icon: "🫐" },
-            { name: "Himbeeren", category: "Obst & Gemüse", side: "W", icon: "🍒" },
-            { name: "Brokkoli", category: "Obst & Gemüse", side: "W", icon: "🥦" },
-            { name: "Champignons", category: "Obst & Gemüse", side: "W", icon: "🍄" },
-            { name: "Karfiol", category: "Obst & Gemüse", side: "W", icon: "🥦" },
-            { name: "Lauch", category: "Obst & Gemüse", side: "W", icon: "🧅" },
-            { name: "Blattsalat", category: "Obst & Gemüse", side: "W", icon: "🥬" },
-            { name: "Eisbergsalat", category: "Obst & Gemüse", side: "W", icon: "🥬" },
-            { name: "Vogerlsalat", category: "Obst & Gemüse", side: "W", icon: "🥬" },
-            { name: "Babyblattspinat", category: "Obst & Gemüse", side: "W", icon: "🍃" },
-            { name: "Orangen", category: "Obst & Gemüse", side: "W", icon: "🍊" },
-            { name: "Mandarinen", category: "Obst & Gemüse", side: "W", icon: "🍊" },
-            { name: "Zitronen", category: "Obst & Gemüse", side: "W", icon: "🍋" },
-            { name: "Trauben", category: "Obst & Gemüse", side: "W", icon: "🍇" },
-            { name: "Avocado", category: "Obst & Gemüse", side: "W", icon: "🥑" },
-            { name: "Kiwi", category: "Obst & Gemüse", side: "W", icon: "🥝" },
-            { name: "Mango", category: "Obst & Gemüse", side: "W", icon: "🥭" },
-            { name: "Äpfel", category: "Obst & Gemüse", side: "W", icon: "🍎" },
-            { name: "Bananen", category: "Obst & Gemüse", side: "W", icon: "🍌" },
-            { name: "Zwiebeln", category: "Obst & Gemüse", side: "W", icon: "🧅" },
-            { name: "Kartoffeln", category: "Obst & Gemüse", side: "W", icon: "🥔" },
-            { name: "Süßkartoffel", category: "Obst & Gemüse", side: "W", icon: "🍠" },
-            { name: "Ingwer", category: "Obst & Gemüse", side: "W", icon: "🫚" },
-            { name: "Knoblauch", category: "Obst & Gemüse", side: "W", icon: "🧄" },
-            { name: "Rote Rüben Frisch", category: "Obst & Gemüse", side: "W", icon: "🥔" },
-            { name: "Rote Rüben Vorgekocht", category: "Obst & Gemüse", side: "W", icon: "🥔" },
-            { name: "Karotten", category: "Obst & Gemüse", side: "W", icon: "🥕" },
-            { name: "Gurken", category: "Obst & Gemüse", side: "W", icon: "🥒" },
-            { name: "Paprika", category: "Obst & Gemüse", side: "W", icon: "🫑" },
-            { name: "Melanzani", category: "Obst & Gemüse", side: "W", icon: "🍆" },
-            { name: "Zucchini", category: "Obst & Gemüse", side: "W", icon: "🥒" },
-            { name: "Tomaten", category: "Obst & Gemüse", side: "W", icon: "🍅" },
-            { name: "Cocktailtomaten", category: "Obst & Gemüse", side: "W", icon: "🍅" },
-            // OBST & GEMÜSE (O - Birnen waren O in deiner Liste)
-            { name: "Birnen", category: "Obst & Gemüse", side: "O", icon: "🍐" },
-
-            // BACKWAREN (W)
-            { name: "Brot", category: "Backwaren", side: "W", icon: "🍞" },
-            { name: "Semmeln", category: "Backwaren", side: "W", icon: "🥯" },
-            { name: "Zopf", category: "Backwaren", side: "W", icon: "🍞" },
-            { name: "Wraps", category: "Backwaren", side: "W", icon: "🌯" },
-
-            // VORRAT (O)
-            { name: "Kokosmilch", category: "Vorratsschrank", side: "O", icon: "🥥" },
-            { name: "Walnusskerne", category: "Vorratsschrank", side: "O", icon: "🥜" },
-            { name: "Cashewkerne", category: "Vorratsschrank", side: "O", icon: "🥜" },
-            { name: "Haferflocken grob", category: "Vorratsschrank", side: "O", icon: "🥣" },
-            { name: "Haferflocken fein", category: "Vorratsschrank", side: "O", icon: "🥣" },
-            { name: "Müsli", category: "Vorratsschrank", side: "O", icon: "🥣" },
-            { name: "Toastbrot", category: "Vorratsschrank", side: "O", icon: "🍞" },
-            { name: "Honig", category: "Vorratsschrank", side: "O", icon: "🍯" },
-            { name: "Honig Quetschi", category: "Vorratsschrank", side: "O", icon: "🍯" },
-            { name: "Kirschmarmelade", category: "Vorratsschrank", side: "O", icon: "🍒" },
-            { name: "Marillenmarmelade", category: "Vorratsschrank", side: "O", icon: "🍑" },
-            { name: "Powidelmarmelade", category: "Vorratsschrank", side: "O", icon: "🍯" },
-            { name: "Erdbeermarmelade", category: "Vorratsschrank", side: "O", icon: "🍓" },
-            { name: "Himbeermarmelade", category: "Vorratsschrank", side: "O", icon: "🍓" },
-            { name: "Heidelbeermarmelade", category: "Vorratsschrank", side: "O", icon: "🫐" },
-            { name: "Kräutertee", category: "Vorratsschrank", side: "O", icon: "🍵" },
-            { name: "Früchtetee", category: "Vorratsschrank", side: "O", icon: "🍵" },
-            { name: "Kaffee", category: "Vorratsschrank", side: "O", icon: "☕" },
-            { name: "Weizenvollkornmehl", category: "Vorratsschrank", side: "O", icon: "🌾" },
-            { name: "Roggenmehl", category: "Vorratsschrank", side: "O", icon: "🌾" },
-            { name: "Dinkelmehl", category: "Vorratsschrank", side: "O", icon: "🌾" },
-            { name: "Weizenmehl", category: "Vorratsschrank", side: "O", icon: "🌾" },
-            { name: "Dinkelvollkornmehl", category: "Vorratsschrank", side: "O", icon: "🌾" },
-            { name: "Weizengrieß", category: "Vorratsschrank", side: "O", icon: "🌾" },
-            { name: "Maisgrieß", category: "Vorratsschrank", side: "O", icon: "🌾" },
-            { name: "Zucker", category: "Vorratsschrank", side: "O", icon: "🍚" },
-            { name: "Rohrzucker", category: "Vorratsschrank", side: "O", icon: "🍚" },
-            { name: "Olivenöl", category: "Vorratsschrank", side: "O", icon: "🧴" },
-            { name: "Sonneblumenöl", category: "Vorratsschrank", side: "O", icon: "🧴" },
-            { name: "Rapsöl", category: "Vorratsschrank", side: "O", icon: "🧴" },
-            { name: "Apfelessig", category: "Vorratsschrank", side: "O", icon: "🍾" },
-            { name: "Balsamicoessig", category: "Vorratsschrank", side: "O", icon: "🍾" },
-            { name: "Kochschokolade", category: "Vorratsschrank", side: "O", icon: "🍫" },
-            { name: "Vanillepudding", category: "Vorratsschrank", side: "O", icon: "🍮" },
-            { name: "Schokopudding", category: "Vorratsschrank", side: "O", icon: "🍮" },
-            { name: "Rosinen", category: "Vorratsschrank", side: "O", icon: "🍇" },
-            { name: "Trockenhefe", category: "Vorratsschrank", side: "O", icon: "🍞" },
-            { name: "Vanillezucker", category: "Vorratsschrank", side: "O", icon: "🥡" },
-            { name: "Staubzucker", category: "Vorratsschrank", side: "O", icon: "🍚" },
-            { name: "Knödelbrot", category: "Vorratsschrank", side: "O", icon: "🍞" },
-            { name: "Eier", category: "Vorratsschrank", side: "O", icon: "🥚" },
-            { name: "Salz", category: "Vorratsschrank", side: "O", icon: "🧂" },
-            { name: "Pfeffer", category: "Vorratsschrank", side: "O", icon: "🧂" },
-            { name: "Currypulver", category: "Vorratsschrank", side: "O", icon: "🍛" },
-            { name: "Paprikapulver", category: "Vorratsschrank", side: "O", icon: "🌶️" },
-            { name: "Muskat", category: "Vorratsschrank", side: "O", icon: "🌰" },
-            { name: "Zimt", category: "Vorratsschrank", side: "O", icon: "🪵" },
-            { name: "Gewürze", category: "Vorratsschrank", side: "O", icon: "🌿" },
-            { name: "Tomatenstücke (Dose)", category: "Vorratsschrank", side: "O", icon: "🥫" },
-            { name: "Dosenbohnen", category: "Vorratsschrank", side: "O", icon: "🥫" },
-            { name: "Dosenlinsen", category: "Vorratsschrank", side: "O", icon: "🥫" },
-            { name: "Dosenkichererbsen", category: "Vorratsschrank", side: "O", icon: "🥫" },
-            { name: "Mais im Glas", category: "Vorratsschrank", side: "O", icon: "🌽" },
-            { name: "Tomatensauce", category: "Vorratsschrank", side: "O", icon: "🥫" },
-            { name: "Spaghetti", category: "Vorratsschrank", side: "O", icon: "🍝" },
-            { name: "Vollkornspaghetti", category: "Vorratsschrank", side: "O", icon: "🍝" },
-            { name: "Fussili / Spiralnudeln", category: "Vorratsschrank", side: "O", icon: "🍝" },
-            { name: "Basmatireis / Reis", category: "Vorratsschrank", side: "O", icon: "🍚" },
-
-            // SÜSSIGKEITEN (W)
-            { name: "Müsliriegel", category: "Süßigkeiten", side: "W", icon: "🍫" },
-            { name: "Vollmilchschokolade", category: "Süßigkeiten", side: "W", icon: "🍫" },
-            { name: "Zartbitterschokolade", category: "Süßigkeiten", side: "W", icon: "🍫" },
-            { name: "Chips", category: "Süßigkeiten", side: "W", icon: "🥨" },
-            { name: "Kekse", category: "Süßigkeiten", side: "W", icon: "🍪" },
-            { name: "Gummibärchen", category: "Süßigkeiten", side: "W", icon: "🐻" },
-
-            // GETRÄNKE (O)
-            { name: "Wein", category: "Getränke", side: "O", icon: "🍷" },
-            { name: "Bier", category: "Getränke", side: "O", icon: "🍺" },
-            { name: "Mineralwasser", category: "Getränke", side: "O", icon: "💧" },
-            { name: "Sirup", category: "Getränke", side: "O", icon: "🥤" },
-            { name: "Cola", category: "Getränke", side: "O", icon: "🥤" },
-            { name: "Apfelsaft", category: "Getränke", side: "O", icon: "🧃" },
-
-            // HAUSHALT (O)
-            { name: "Shampoo", category: "Haushalt", side: "O", icon: "🧴" },
-            { name: "Bodylotion", category: "Haushalt", side: "O", icon: "🧴" },
-            { name: "Deo", category: "Haushalt", side: "O", icon: "🧊" },
-            { name: "Taschentücher", category: "Haushalt", side: "O", icon: "🤧" },
-            { name: "Zahnpasta", category: "Haushalt", side: "O", icon: "🪥" },
-            { name: "Zahnbürste", category: "Haushalt", side: "O", icon: "🪥" },
-            { name: "Geschirrspülertabs", category: "Haushalt", side: "O", icon: "🧼" },
-            { name: "Spülmittel", category: "Haushalt", side: "O", icon: "🧼" },
-            { name: "Waschmittel", category: "Haushalt", side: "O", icon: "🧺" },
-            { name: "Klopapier", category: "Haushalt", side: "O", icon: "🧻" },
-            { name: "Küchenrolle", category: "Haushalt", side: "O", icon: "🧻" },
-            { name: "Müllbeutel", category: "Haushalt", side: "O", icon: "🗑️" },
-
-            // KÜHLUNG (O)
-            { name: "Faschiertes", category: "Kühlung", side: "O", icon: "🥩" },
-            { name: "Hühnerfleisch", category: "Kühlung", side: "O", icon: "🍗" },
-            { name: "Hefe", category: "Kühlung", side: "O", icon: "🍞" },
-            { name: "Gnocchi frisch", category: "Kühlung", side: "O", icon: "🥟" },
-            { name: "Käse", category: "Kühlung", side: "O", icon: "🧀" },
-            { name: "Topfen", category: "Kühlung", side: "O", icon: "🥛" },
-            { name: "Frischkäse", category: "Kühlung", side: "O", icon: "🥯" },
-            { name: "Fruchtjoghurt", category: "Kühlung", side: "O", icon: "🥛" },
-            { name: "Joghurt", category: "Kühlung", side: "O", icon: "🥛" },
-            { name: "Sahne", category: "Kühlung", side: "O", icon: "🥛" },
-            { name: "Creme Fraiche", category: "Kühlung", side: "O", icon: "🥛" },
-            { name: "Sauerrahm", category: "Kühlung", side: "O", icon: "🥛" },
-            { name: "Butter", category: "Kühlung", side: "O", icon: "🧈" },
-            { name: "Milch", category: "Kühlung", side: "O", icon: "🥛" },
-
-            // TIEFKÜHL (O)
-            { name: "Vanilleeis", category: "Tiefkühl", side: "O", icon: "🍦" },
-            { name: "Tiefkühlhimbeeren", category: "Tiefkühl", side: "O", icon: "🍒" },
-            { name: "Tiefkühlbeeren", category: "Tiefkühl", side: "O", icon: "🍒" },
-            { name: "Tiefkühlblattspinat", category: "Tiefkühl", side: "O", icon: "🧊" },
-            { name: "Tiefkühlcremespinat", category: "Tiefkühl", side: "O", icon: "🧊" },
-            { name: "Tiefkühlgemüse", category: "Tiefkühl", side: "O", icon: "❄️" },
-            { name: "Tiefkühlpizza", category: "Tiefkühl", side: "O", icon: "🍕" },
-            { name: "Pommes", category: "Tiefkühl", side: "O", icon: "🍟" },
-            { name: "Süßkartoffelpommes", category: "Tiefkühl", side: "O", icon: "🍟" },
-            { name: "Tiefkühlerbsen", category: "Tiefkühl", side: "O", icon: "🫛" },
-            { name: "Tiefkühlkarfiol", category: "Tiefkühl", side: "O", icon: "❄️" },
-            { name: "Tiefkühlbrokkoli", category: "Tiefkühl", side: "O", icon: "🥦" },
-
-            // KASSA
-            { name: "Batterien", category: "Kassa", side: "O", icon: "🔋" }
-        ];
-
-        window.app = {
-            cart: {}, searchTerm: '', activeTab: 'all',
-
-            init: function() {
-                // Echtzeit-Überwachung der Cloud-Daten
-                onValue(dbRef, (snapshot) => {
-                    this.cart = snapshot.val() || {};
-                    this.refreshCurrentView();
-                });
-            },
-
-            saveToCloud: function() {
-                set(dbRef, this.cart);
-            },
-
-            // NEUE FUNKTION: ALLES LÖSCHEN
-            clearCart: function() {
-                if(confirm("Möchtest du wirklich die gesamte Einkaufsliste leeren?")) {
-                    set(dbRef, {}); // Leeres Objekt an Firebase senden
+        // --- PIN LOGIC ---
+        let pinBuffer = "";
+        
+        function tapPin(n) {
+            if(pinBuffer.length < 4) {
+                pinBuffer += n;
+                updatePinUI();
+                if(pinBuffer.length === 4) {
+                    setTimeout(checkPin, 200);
                 }
-            },
-
-            updateQty: function(name, delta) {
-                if (!this.cart[name]) this.cart[name] = { qty: 0, checked: false };
-                this.cart[name].qty += delta;
-                if (this.cart[name].qty <= 0) delete this.cart[name];
-                this.saveToCloud();
-            },
-
-            toggleCheck: function(name) {
-                if (this.cart[name]) {
-                    this.cart[name].checked = !this.cart[name].checked;
-                    this.saveToCloud();
-                }
-            },
-
-            switchTab: function(tab) {
-                this.activeTab = tab;
-                document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.onclick.toString().includes(tab)));
-                document.querySelectorAll('.view-section').forEach(s => s.classList.toggle('active', s.id === 'view-' + tab));
-                
-                // Footer Buttons nur im Tab "Einkaufen" (shop) anzeigen
-                const footer = document.getElementById('shop-footer');
-                if(tab === 'shop') footer.classList.add('visible');
-                else footer.classList.remove('visible');
-
-                this.refreshCurrentView();
-            },
-
-            handleSearch: function() {
-                this.searchTerm = document.getElementById('search-input').value.toLowerCase();
-                this.refreshCurrentView();
-            },
-
-            refreshCurrentView: function() {
-                if (this.activeTab === 'all') this.renderGrid();
-                if (this.activeTab === 'cats') this.renderCats();
-                if (this.activeTab === 'shop') this.renderShop();
-            },
-
-            renderGrid: function() {
-                const filtered = CATALOG.filter(p => p.name.toLowerCase().includes(this.searchTerm));
-                document.getElementById('grid-container').innerHTML = filtered.map(p => this.createCard(p)).join('');
-            },
-
-            renderCats: function() {
-                const container = document.getElementById('cat-list-container');
-                container.innerHTML = '';
-                const cats = [...new Set(CATALOG.map(p => p.category))];
-                cats.forEach(cat => {
-                    const items = CATALOG.filter(p => p.category === cat && p.name.toLowerCase().includes(this.searchTerm));
-                    if (items.length > 0) {
-                        container.innerHTML += `<div class="cat-title">${cat}</div><div class="product-grid">${items.map(p => this.createCard(p)).join('')}</div>`;
-                    }
-                });
-            },
-
-            createCard: function(p) {
-                const qty = this.cart[p.name]?.qty || 0;
-                return `
-                <div class="product-card ${qty > 0 ? 'in-cart' : ''}">
-                    <div onclick="app.updateQty('${p.name}', 1)">
-                        <span class="prod-icon">${p.icon}</span>
-                        <span class="prod-name">${p.name}</span>
-                    </div>
-                    <div class="controls">
-                        <button class="btn-ctrl" onclick="app.updateQty('${p.name}', -1)">-</button>
-                        <span>${qty || ''}</span>
-                        <button class="btn-ctrl btn-plus" onclick="app.updateQty('${p.name}', 1)">+</button>
-                    </div>
-                </div>`;
-            },
-
-            renderShop: function() {
-                const container = document.getElementById('shopping-list-container');
-                const items = CATALOG.filter(p => this.cart[p.name]).map(p => ({...p, ...this.cart[p.name]}));
-                if (items.length === 0) { container.innerHTML = "Liste ist leer."; return; }
-                container.innerHTML = items.map(item => `
-                    <div class="shopping-list-item ${item.checked ? 'checked' : ''}">
-                        <div style="display:flex; align-items:center; gap:10px; width:100%;" onclick="app.toggleCheck('${item.name}')">
-                            <span style="font-size:1.5rem">${item.checked ? '☑️' : '⬜'}</span>
-                            <div style="flex:1">
-                                <span style="display:block; font-weight:bold;">${item.name}</span>
-                                <span style="font-size:0.8rem; color:#666;">${item.side} | ${item.category}</span>
-                            </div>
-                        </div>
-                        <span style="font-weight:bold; font-size:1.2rem;">${item.qty}x</span>
-                    </div>
-                `).join('');
-                this.currentItems = items;
-            },
-
-            exportPDF: function() {
-                if(!this.currentItems || this.currentItems.length === 0) {
-                    alert("Liste ist leer!"); return;
-                }
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF();
-                
-                doc.setFontSize(20);
-                doc.text("Einkaufsliste", 10, 15);
-                
-                doc.setFontSize(12);
-                let y = 30;
-                this.currentItems.forEach((item, i) => {
-                    if (y > 280) { doc.addPage(); y = 20; }
-                    doc.text(`[ ]  ${item.qty}x ${item.name} (${item.side})`, 10, y);
-                    y += 10;
-                });
-                doc.save("Einkauf.pdf");
             }
-        };
+        }
 
-        app.init();
+        function delPin() {
+            pinBuffer = pinBuffer.slice(0, -1);
+            updatePinUI();
+        }
+
+        function updatePinUI() {
+            for(let i=1; i<=4; i++) {
+                const el = document.getElementById('d'+i);
+                if(i <= pinBuffer.length) el.classList.add('filled');
+                else el.classList.remove('filled');
+            }
+        }
+
+        function checkPin() {
+            if(pinBuffer === CONFIG.pin) {
+                document.getElementById('pin-screen').classList.add('hidden');
+                document.getElementById('app-screen').classList.remove('hidden');
+                initApp();
+            } else {
+                // Wiggle Animation
+                const wrap = document.querySelector('.pin-wrapper');
+                wrap.style.transform = "translateX(15px)";
+                setTimeout(() => wrap.style.transform = "translateX(-15px)", 100);
+                setTimeout(() => wrap.style.transform = "translateX(0)", 200);
+                pinBuffer = "";
+                updatePinUI();
+            }
+        }
+
+        // --- APP LOGIC ---
+        function initApp() {
+            createHearts();
+            updateLoop();
+            setInterval(updateLoop, 1000);
+        }
+
+        function updateLoop() {
+            const now = new Date();
+            const birth = CONFIG.dob;
+
+            // 1. Alter (Exakt)
+            let years = now.getFullYear() - birth.getFullYear();
+            let months = now.getMonth() - birth.getMonth();
+            let days = now.getDate() - birth.getDate();
+
+            if (days < 0) {
+                months--;
+                days += new Date(now.getFullYear(), now.getMonth(), 0).getDate();
+            }
+            if (months < 0) {
+                years--;
+                months += 12;
+            }
+
+            let restWeeks = Math.floor(days / 7);
+            let restDays = days % 7;
+
+            document.getElementById('y').innerText = years;
+            document.getElementById('m').innerText = months;
+            document.getElementById('w').innerText = restWeeks;
+            document.getElementById('d').innerText = restDays;
+
+            // 2. Statistik (Gesamt)
+            const diffTime = now - birth;
+            const totalDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            const totalWeeks = Math.floor(totalDays / 7);
+            let totalMonths = (years * 12) + months;
+
+            document.getElementById('total-m').innerText = totalMonths.toLocaleString();
+            document.getElementById('total-w').innerText = totalWeeks.toLocaleString();
+            document.getElementById('total-d').innerText = totalDays.toLocaleString();
+
+            // 3. Progress Bars
+            updateProgress(now, birth.getDate(), birth.getMonth(), 'txt-bday', 'bar-bday');
+            updateProgress(now, CONFIG.nameday.d, CONFIG.nameday.m - 1, 'txt-name', 'bar-name');
+        }
+
+        function updateProgress(now, d, m, txtId, barId) {
+            let target = new Date(now.getFullYear(), m, d);
+            let lastTarget = new Date(now.getFullYear() - 1, m, d);
+            
+            if (now > target && now.getDate() !== target.getDate()) {
+                target.setFullYear(now.getFullYear() + 1);
+                lastTarget.setFullYear(now.getFullYear());
+            }
+
+            const totalSpan = target - lastTarget;
+            const elapsed = now - lastTarget;
+            let percent = (elapsed / totalSpan) * 100;
+
+            const diffMs = target - now;
+            const daysLeft = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+            
+            let txt = daysLeft + " Tage";
+            if (daysLeft <= 0 || (now.getDate() === d && now.getMonth() === m)) {
+                txt = "HEUTE! 🥳";
+                percent = 100;
+            }
+
+            document.getElementById(txtId).innerText = txt;
+            document.getElementById(barId).style.width = percent + "%";
+        }
+
+        // --- HEARTS / STARS ---
+        function createHearts() {
+            const container = document.getElementById('bg-animation');
+            for(let i=0; i<12; i++) spawnHeart(container);
+            setInterval(() => spawnHeart(container), 2500);
+        }
+
+        function spawnHeart(container) {
+            const h = document.createElement('div');
+            h.classList.add('heart');
+            h.innerText = Math.random() > 0.5 ? '💙' : '⭐';
+            h.style.left = Math.random() * 100 + "vw";
+            h.style.animationDuration = (Math.random() * 5 + 6) + "s"; 
+            h.style.fontSize = (Math.random() * 20 + 15) + "px";
+            container.appendChild(h);
+            setTimeout(() => h.remove(), 11000);
+        }
+
     </script>
 </body>
 </html>
